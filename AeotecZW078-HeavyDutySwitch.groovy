@@ -44,7 +44,6 @@
  *    0x71 v3  NOTIFICATION (overload protection events; older firmware sends as ALARM v2)
  *    0x72 v2  MANUFACTURER_SPECIFIC
  *    0x73 v1  POWERLEVEL
- *    0x82 v1  HAIL
  *    0x85 v2  ASSOCIATION
  *    0x86 v2  VERSION
  *    0x8E v2  MULTI_CHANNEL_ASSOCIATION
@@ -313,7 +312,6 @@ def parse(String description) {
         0x70: 1,   // CONFIGURATION
         0x71: 3,   // NOTIFICATION (v3) / ALARM — overload protection reports arrive here
         0x72: 2,   // MANUFACTURER_SPECIFIC
-        0x82: 1,   // HAIL
         0x85: 2,   // ASSOCIATION
         0x86: 2,   // VERSION
         0x98: 1,   // SECURITY
@@ -415,15 +413,6 @@ def zwaveEvent(hubitat.zwave.commands.alarmv2.AlarmReport cmd) {
     return []
 }
 
-// ── Hail — device asking hub to poll switch state ────────────────────────────
-def zwaveEvent(hubitat.zwave.commands.hailv1.HailReport cmd) {
-    logDebug "HailReport — polling switch state"
-    sendHubCommand(new hubitat.device.HubAction(
-        secureCmd(zwave.switchBinaryV1.switchBinaryGet()),
-        hubitat.device.Protocol.ZWAVE
-    ))
-    return []
-}
 
 // ── CRC-16 Encapsulation ──────────────────────────────────────────────────────
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
