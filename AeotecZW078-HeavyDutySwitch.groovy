@@ -330,7 +330,8 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     logDebug "SwitchBinaryReport: value=${cmd.value}"
     def sw = cmd.value ? "on" : "off"
     if (txtEnable) log.info "${device.displayName} switch is ${sw}"
-    return [createEvent(name: "switch", value: sw)]
+    sendEvent(name: "switch", value: sw, descriptionText: "${device.displayName} switch is ${sw}")
+    return []
 }
 
 // ── Basic Report (sent when Param 80 = 1) ────────────────────────────────────
@@ -338,51 +339,51 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
     logDebug "BasicReport: value=${cmd.value}"
     def sw = cmd.value ? "on" : "off"
     if (txtEnable) log.info "${device.displayName} switch is ${sw}"
-    return [createEvent(name: "switch", value: sw)]
+    sendEvent(name: "switch", value: sw, descriptionText: "${device.displayName} switch is ${sw}")
+    return []
 }
 
 // ── Meter Report ─────────────────────────────────────────────────────────────
 def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
-    logDebug "MeterReport: scale=${cmd.scale} value=${cmd.scaledMeterValue} unit=${cmd.scale}"
-    List events = []
+    logDebug "MeterReport: scale=${cmd.scale} value=${cmd.scaledMeterValue}"
     def val = cmd.scaledMeterValue
 
     switch (cmd.scale) {
         case 0:   // kWh — accumulated energy
             if (txtEnable) log.info "${device.displayName} energy: ${val} kWh"
-            events << createEvent(name: "energy", value: val, unit: "kWh",
-                                  descriptionText: "${device.displayName} energy ${val} kWh")
+            sendEvent(name: "energy", value: val, unit: "kWh",
+                      descriptionText: "${device.displayName} energy ${val} kWh")
             break
 
         case 2:   // Watts — instantaneous power
             if (txtEnable) log.info "${device.displayName} power: ${val} W"
-            events << createEvent(name: "power", value: val, unit: "W",
-                                  descriptionText: "${device.displayName} power ${val} W")
+            sendEvent(name: "power", value: val, unit: "W",
+                      descriptionText: "${device.displayName} power ${val} W")
             trackPowerHighLow(val)
             break
 
         case 4:   // Volts — AC RMS voltage
             if (txtEnable) log.info "${device.displayName} voltage: ${val} V"
-            events << createEvent(name: "voltage", value: val, unit: "V",
-                                  descriptionText: "${device.displayName} voltage ${val} V")
+            sendEvent(name: "voltage", value: val, unit: "V",
+                      descriptionText: "${device.displayName} voltage ${val} V")
             break
 
         case 5:   // Amps — AC RMS current
             if (txtEnable) log.info "${device.displayName} current: ${val} A"
-            events << createEvent(name: "amperage", value: val, unit: "A",
-                                  descriptionText: "${device.displayName} current ${val} A")
+            sendEvent(name: "amperage", value: val, unit: "A",
+                      descriptionText: "${device.displayName} current ${val} A")
             break
 
         case 6:   // Power factor — dimensionless 0–1
             if (txtEnable) log.info "${device.displayName} power factor: ${val}"
-            events << createEvent(name: "powerFactor", value: val, unit: "",
-                                  descriptionText: "${device.displayName} power factor ${val}")
+            sendEvent(name: "powerFactor", value: val,
+                      descriptionText: "${device.displayName} power factor ${val}")
             break
 
         default:
             logDebug "MeterReport: unhandled scale ${cmd.scale} value=${val}"
     }
-    return events
+    return []
 }
 
 // ── Overload / Power Management Alarm ────────────────────────────────────────
@@ -391,12 +392,11 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
     logDebug "NotificationReport type=${cmd.notificationType} event=${cmd.event}"
     if (cmd.notificationType == 8 && cmd.event == 6) {
         log.warn "${device.displayName}: OVERLOAD PROTECTION TRIPPED — relay turned off by device"
-        return [
-            createEvent(name: "switch",         value: "off",     descriptionText: "${device.displayName} overload trip"),
-            createEvent(name: "overloadStatus", value: "tripped", descriptionText: "${device.displayName} overcurrent detected")
-        ]
+        sendEvent(name: "switch",         value: "off",     descriptionText: "${device.displayName} overload trip")
+        sendEvent(name: "overloadStatus", value: "tripped", descriptionText: "${device.displayName} overcurrent detected")
+    } else {
+        logDebug "NotificationReport: unhandled type=${cmd.notificationType} event=${cmd.event}"
     }
-    logDebug "NotificationReport: unhandled type=${cmd.notificationType} event=${cmd.event}"
     return []
 }
 
@@ -405,10 +405,8 @@ def zwaveEvent(hubitat.zwave.commands.alarmv2.AlarmReport cmd) {
     logDebug "AlarmReport type=${cmd.zwaveAlarmType} event=${cmd.zwaveAlarmEvent}"
     if (cmd.zwaveAlarmType == 8 && cmd.zwaveAlarmEvent == 6) {
         log.warn "${device.displayName}: OVERLOAD PROTECTION TRIPPED (Alarm CC) — relay off"
-        return [
-            createEvent(name: "switch",         value: "off",     descriptionText: "${device.displayName} overload trip"),
-            createEvent(name: "overloadStatus", value: "tripped", descriptionText: "${device.displayName} overcurrent detected")
-        ]
+        sendEvent(name: "switch",         value: "off",     descriptionText: "${device.displayName} overload trip")
+        sendEvent(name: "overloadStatus", value: "tripped", descriptionText: "${device.displayName} overcurrent detected")
     }
     return []
 }
