@@ -126,15 +126,15 @@ metadata {
               description: "Device sends these readings automatically at the interval below",
               options: [
                   "0":   "None (disable timed reports)",
-                  "1":   "kWh only",
-                  "4":   "Watts only",
-                  "5":   "kWh + Watts",
-                  "16":  "Voltage only",
-                  "32":  "Amps only",
-                  "21":  "kWh + Watts + Voltage",
-                  "37":  "kWh + Watts + Amps",
-                  "53":  "kWh + Watts + Voltage + Amps  ← recommended",
-                  "117": "kWh + Watts + Voltage + Amps + Power Factor"
+                  "1":   "Energy (kWh) only",
+                  "4":   "Power (W) only",
+                  "5":   "Energy (kWh) + Power (W)",
+                  "16":  "Voltage (V) only",
+                  "32":  "Current (A) only",
+                  "21":  "Energy (kWh) + Power (W) + Voltage (V)",
+                  "37":  "Energy (kWh) + Power (W) + Current (A)",
+                  "53":  "Energy (kWh) + Power (W) + Voltage (V) + Current (A)  ← recommended",
+                  "117": "Energy (kWh) + Power (W) + Voltage (V) + Current (A) + Power Factor"
               ],
               defaultValue: "53"
 
