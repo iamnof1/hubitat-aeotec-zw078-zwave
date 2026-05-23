@@ -350,34 +350,26 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 
     switch (cmd.scale) {
         case 0:   // kWh — accumulated energy
-            if (txtEnable) log.info "${device.displayName} energy: ${val} kWh"
-            sendEvent(name: "energy", value: val, unit: "kWh",
-                      descriptionText: "${device.displayName} energy ${val} kWh")
+            sendChanged("energy", val, "kWh", 0.01)
             break
 
         case 2:   // Watts — instantaneous power
-            if (txtEnable) log.info "${device.displayName} power: ${val} W"
-            sendEvent(name: "power", value: val, unit: "W",
-                      descriptionText: "${device.displayName} power ${val} W")
+            sendChanged("power", val, "W", 1)
             trackPowerHighLow(val)
             break
 
         case 4:   // Volts — AC RMS voltage
-            if (txtEnable) log.info "${device.displayName} voltage: ${val} V"
-            sendEvent(name: "voltage", value: val, unit: "V",
-                      descriptionText: "${device.displayName} voltage ${val} V")
+            // Filter sub-volt noise; mains drifts ±0.5 V routinely and would otherwise
+            // trip Hub Load Protection when reports ride along with frequent watt updates.
+            sendChanged("voltage", val, "V", 1.0)
             break
 
         case 5:   // Amps — AC RMS current
-            if (txtEnable) log.info "${device.displayName} current: ${val} A"
-            sendEvent(name: "amperage", value: val, unit: "A",
-                      descriptionText: "${device.displayName} current ${val} A")
+            sendChanged("amperage", val, "A", 0.05)
             break
 
         case 6:   // Power factor — dimensionless 0–1
-            if (txtEnable) log.info "${device.displayName} power factor: ${val}"
-            sendEvent(name: "powerFactor", value: val,
-                      descriptionText: "${device.displayName} power factor ${val}")
+            sendChanged("powerFactor", val, null, 0.02)
             break
 
         default:
@@ -489,6 +481,31 @@ private List<String> refreshCmds() {
         "delay 300",
         secureCmd(zwave.meterV3.meterGet(scale: 5)),   // Amps
     ]
+}
+
+/** Emit an attribute change only when it has moved by at least minDelta from the
+ *  last value the hub has on file. Drops near-duplicate reports so a chatty device
+ *  cannot trip Hubitat's Hub Load Protection (LimitExceededException). */
+private void sendChanged(String attr, def value, String unit, BigDecimal minDelta) {
+    BigDecimal newVal = value as BigDecimal
+    def last = device.currentValue(attr)
+    if (last != null) {
+        BigDecimal lastVal = last as BigDecimal
+        if ((newVal - lastVal).abs() < minDelta) {
+            logDebug "${attr} change <${minDelta}${unit ? ' ' + unit : ''} (now=${newVal}, was=${lastVal}); skipping"
+            return
+        }
+    }
+    String suffix = unit ? " ${unit}" : ""
+    if (txtEnable) log.info "${device.displayName} ${attr}: ${newVal}${suffix}"
+    Map evt = [name: attr, value: newVal,
+               descriptionText: "${device.displayName} ${attr} ${newVal}${suffix}"]
+    if (unit) evt.unit = unit
+    try {
+        sendEvent(evt)
+    } catch (Exception e) {
+        log.warn "${device.displayName}: dropped ${attr}=${newVal}${suffix} — ${e.message}"
+    }
 }
 
 /** Track session power high/low watermarks. */
