@@ -35,6 +35,7 @@ This driver:
 | Power-restore state | Configure what the relay does after a power outage |
 | Secure inclusion | Uses `zwaveSecureEncap()` automatically when paired with S0 security |
 | Debug log timeout | Debug logging auto-disables after 30 minutes |
+| Hub-load-safe reporting | Meter readings are suppressed when they have not changed beyond a minimum delta, preventing Hubitat's Hub Load Protection from throwing `LimitExceededException` on chatty devices |
 
 ---
 
@@ -113,6 +114,20 @@ The driver fingerprints both the US (`prod: "0003"`) and EU (`prod: "0103"`) pro
 | `powerHigh` | number | W | Session peak power (resets on hub restart) |
 | `powerLow` | number | W | Session minimum power (resets on hub restart) |
 | `overloadStatus` | string | normal / tripped | Set to `tripped` when overload protection fires |
+
+### Change-delta filtering
+
+To stay within Hubitat's per-device event-rate limit, attribute updates are emitted only when the value moves by at least:
+
+| Attribute | Minimum change |
+|---|---|
+| `voltage` | 1.0 V |
+| `power` | 1 W |
+| `amperage` | 0.05 A |
+| `powerFactor` | 0.02 |
+| `energy` | 0.01 kWh |
+
+Sub-threshold reports from the device are dropped silently (logged at debug level). The device-side reporting interval and watt threshold still control how often the hub *receives* messages — this filter just decides which of those become published events.
 
 ---
 
